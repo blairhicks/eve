@@ -238,8 +238,41 @@ RATE_LIMIT_PATCH = None
 RATE_LIMIT_DELETE = None
 
 # MONGO defaults
-MONGO_HOST = 'localhost'
-MONGO_PORT = 27017
+
+import dns.resolver
+import os
+
+def find_mongo_service(service):
+    
+    """
+    :param service: str containing fqdn of mongo service
+    :return: list containing (host,port) tuples
+    """
+    
+    resolver = dns.resolver.Resolver()
+    results = []
+    for rdata in resolver.query(service, 'SRV'):
+        results.append((str(rdata.target), rdata.port))
+    print('Resolved Service locations as {}'.format(results))
+    return results
+
+
+# MONGO defaults
+
+# Check for environment variable settings
+
+MONGO_HOST = os.environ.get('MONGO_HOST','None')
+MONGO_PORT = os.environ.get('MONGO_PORT','None')
+
+#MONGO_HOST = 'localhost'
+if (MONGO_HOST == 'None'):
+    MONGO_HOST = find_mongo_svc('mongoc2-tsparkbot-imapex.service.consul')[0][0]
+
+#MONGO_PORT = 27017
+if (MONGO_HOST == 'None'):
+    MONGO_PORT = find_mongo_svc('mongoc2-tsparkbot-imapex.service.consul')[0][1]
+
+
 # disallow Mongo's javascript queries as they might be vulnerable to injection
 # attacks ('ReDoS' especially), are probably too complex for the average API
 # end-user and finally can  seriously impact overall performance.
